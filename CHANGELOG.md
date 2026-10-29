@@ -40,3 +40,12 @@
   冷启动未就绪、抽帧非 ASCII 名
   - Skill `ae-crash-diagnose`
 - **索引**:`README.md`(主题表 7 行)、`skills/README.md`(技能表 7 行 + 安装三件套 + 断链校验)、本文件
+- **结构校验(实测)**:`skills/` 子目录 **7** 个、`skills/README.md` 清单 **7** 行,零差集;
+  7 个 SKILL.md 全部 `name` / `description` / `agent_created` 三键齐、无 BOM;
+  `py_compile` 三个 Python 脚本通过、`run_ae.ps1` PowerShell 解析通过
+  - **断链校验:技能数 7 / 相对链接目标 24 / 断链 0**
+  - ★ **两个度量陷阱(实测各假报一次)**:① 只取 markdown 链接目标(方括号后紧跟圆括号的形式),
+    不扫"全文像路径的串";② **必须先剥掉代码块** —— 检查脚本的注释里自带一条"链接目标示例",
+    不剥就会把它当断链(假报 2 处)
+  - ★ **仓库内直接拿 `skills/` 当检查根会全量假报 26 处**:`../scripts/` 是按**安装后**布局写的
+    (安装时 `scripts/`、`docs/` 拷**进** `skills/` 里),而仓库里它们在上一级 ⇒ 要先做一次 staging 拷贝再校验
