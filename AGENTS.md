@@ -1,7 +1,9 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-29 v1.0.0 —— 仓库建立,7 个主题入库。
-> 内容全部来自 `835_启动页` 三品牌三方案工程的实际交付(9 个合成 / 27 张抽帧 / 2 张滑块对照帧),
+> 📌 **文档基线**:2026-10-29 v1.1.0 —— 新增方案 `s5v2`(最初经典:116px / 94→100 / 模糊 20→0 / 前 55% 收清,
+> Logo Quart-out + 副标题 ease),并把第二次交付踩到的四个坑写回(参数控制用 null、`DONE$` 判据、
+> `& -r` 的 null 报错、`expressionError` 的 `undefined` 假报)。
+> 内容全部来自 `835_启动页` 两次实际交付(9 个合成 27 帧 + 3 个合成 15 帧),
 > 口径为 **AE 2026(中文界面)/ Windows**。
 > (**★★ 头号坑:AE 2026 的 `setTemporalEaseAtKey` 对多维亚属性不可用** —— Position 传 2 个 ease 直接报
 > `由于参数 2,无法调用...值数组没有 1 元素`;Scale 传 2 个 ease **硬崩溃整个 AE 进程**(`try/catch` 接不住);
@@ -72,11 +74,17 @@ ae-tips/
 | 级 | 坑 | 判据 / 修法 |
 |---|---|---|
 | ★★★ | `setTemporalEaseAtKey` 多维亚属性 | Position 报错、Scale **硬崩进程** ⇒ 用表达式缓动,见 [主题 2](docs/表达式缓动与滑块控制.md) |
+| ★★★ | 参数控制用 solid | 不透明黑层盖住整幅画面,**日志全正常** ⇒ 抽帧 bbox 退化成 `(0,0,W,H)`;改 `addNull` |
 | ★★★ | `saveFrameToPng` 异步写盘 | 日志成功 ≠ 文件存在 ⇒ 每帧 `$.sleep(900)` + `exists` 自查 |
 | ★★ | 日志不落盘 | `File` 只在 `close()` 写盘 ⇒ 逐行 open/append/close |
+| ★★ | `DONE` 判据写成 `^DONE` | 日志行首是时间戳 ⇒ 永远匹配不到,成功的构建被报"中途崩"、退出码 1 ⇒ 用 `DONE$` |
+| ★★ | `& AfterFX.exe -r` | 嵌套 PowerShell 里退出后抛 null 报错(脚本其实跑完了)⇒ 改 `Start-Process` |
 | ★★ | 拼接 AE 对象进字符串 | 进程硬崩 ⇒ 只拼标量 |
 | ★★ | 中文版属性名 | `property("Slider")` = `null` ⇒ 按索引 |
+| ★ | `expressionError` 的 `undefined` | 合成级会假报 `EXPR_ERR <合成名> :: undefined` ⇒ 判 `typeof err === "string"` |
+| ★ | 模糊入场时像素数非单调 | 模糊扩散让中段比终帧多(实测 31649 → 29685)⇒ 用 bbox 上沿判"在动" |
 | ★ | 冷启动未等窗口 | `-r` 静默不执行 ⇒ 轮询 `MainWindowTitle` |
+| ★ | `.ps1` 无 BOM | PS 5.1 按 ANSI 读 ⇒ 中文提示乱码 ⇒ 存 UTF-8 with BOM |
 | ★ | `dimensionsSeparated` | 分维度后取属性崩溃 ⇒ 不分离 |
 | ★ | 抽帧中文文件名 | 文件不落盘 ⇒ ASCII 名 |
 

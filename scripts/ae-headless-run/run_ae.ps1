@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)][string]$Jsx,
     [string]$Log = "",
     [int]$TimeoutSec = 300,
@@ -48,12 +48,22 @@ Write-Host "[run_ae] 主窗口就绪: $($p.MainWindowTitle)"
 Start-Sleep -Milliseconds 1500
 
 # ---- 阶段 2:投递脚本 ------------------------------------------------------
+# ★ 不要用 `& $AePath -r $Jsx`:在嵌套 PowerShell(`powershell -File`)里,等 AE 退出后
+#   会抛 `You cannot call a method on a null-valued expression` —— **脚本其实已经跑完**,
+#   只是包装层报错、退出码变成 1。改用 Start-Process(不等),退出由阶段 3 轮询。
 Write-Host "[run_ae] afterfx -r <jsx> ..."
-& $AePath -r $Jsx
+Start-Process -FilePath $AePath -ArgumentList @("-r", $Jsx) | Out-Null
 
 # ---- 阶段 3:等脚本结束 ----------------------------------------------------
 # jsx 末尾 app.quit() => 进程退出即脚本结束。
 # 不设这条,只能靠日志猜,而日志正好是最不可靠的那一环。
+Write-Host "[run_ae] 等 AfterFX 退出(上限 ${TimeoutSec}s)..."
+# Start-Process 立即返回 ⇒ 先等进程真的出现,否则第一轮轮询会误判"已退出"
+$spawn = (Get-Date).AddSeconds(10)
+while ((Get-Date) -lt $spawn) {
+    if (Get-Process AfterFX -ErrorAction SilentlyContinue) { break }
+    Start-Sleep -Milliseconds 300
+}
 $sw = [Diagnostics.Stopwatch]::StartNew()
 while ($sw.Elapsed.TotalSeconds -lt $TimeoutSec) {
     $p2 = Get-Process AfterFX -ErrorAction SilentlyContinue
@@ -78,6 +88,8 @@ $lines = Get-Content $Log -Encoding UTF8
 Write-Host "[run_ae] 日志 $($lines.Count) 行:"
 $lines | ForEach-Object { Write-Host "  $_" }
 
-if ($lines -match "^DONE") { exit 0 }
+# ★ 日志每行前面带时间戳("Thu Oct 29 2026 17:22:21 GMT+0800  DONE"),
+#   用 ^DONE 永远匹配不到 —— 实测三次构建全部被误判成"中途崩"。必须匹配行尾。
+if ($lines -match "DONE$") { exit 0 }
 Write-Host "[run_ae] !! 日志里没有 DONE:脚本中途崩/被中断(最后一行就是崩溃点)"
 exit 1

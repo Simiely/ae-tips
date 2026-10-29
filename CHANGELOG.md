@@ -1,5 +1,42 @@
 # CHANGELOG.md
 
+## v1.1.0 · 2026-10-29
+
+- **新增方案 `s5v2`「方案5 · 最初经典」** —— 来源 `方案5_动效调试.html` + 其动效时序图
+  (时序图写明:调试页 1024 宽下的 `58px / 16px / 10px / 5px` 对应 2048 合成下的 `116px / 32px / 20px / 10px`)
+  - Logo 整体(`logo_full`):`+116px`、`Scale 94→100`、`Blur 20→0`、`Opacity 0→100`;
+    **透明度与模糊在前 55% 收清**(位移/缩放走满 100%),曲线 **Quart-out** `(0.25, 1, 0.5, 1)`
+  - 副标题(逐字):`+32px`、`Blur 10→0`、`Opacity 0→100`,曲线 **ease** `(0.42, 0, 0.58, 1)`,延迟 100ms
+  - **两个 role 曲线不同是本方案的实质特征**(旧 `s5` 是一条 out 曲线吃全片)
+  - 生成器:新增 `CURVE["quartOut"]` / `CURVE["ease"]`,新增 `meta.sliders`(只声明实际用到的滑块组)
+- **第二次交付(三品牌 × 方案5)** —— `manifest_s5v2.json` → `build_s5v2.jsx` → `.aep`
+  - 合成 **3** 个(2048×1152 / 30fps / 3s),图层 **8 / 9 / 5**(+ BG + 参数控制),滑块 **5** 个
+  - `expressionError count=0`;抽帧 **15/15 `exists=true`**;`.aep` **708,865 字节**;生成 jsx 46,567 字符
+  - `verify_frames.py --allow-empty-start --expect expects_s5v2.json` ⇒ **FAIL=0 合成数=3 帧数=15**
+  - 末帧 bbox:QQ `792–1257 / 477–678`、K歌 `795–1257 / 484–682`、懒人 `787–1258 / 477–678`;
+    `t=0.5` 与 `t=1.2` 逐像素相同 ⇒ 动画 0.5s 收干净
+  - 曲线自洽核对(取 `t=0.12`、`u=0.24`):Quart-out 反解得 `f≈0.67` ⇒ 残余位移 `116×0.33≈38px`、
+    缩放 94% 再抬 3px ⇒ 上沿应约 `518px`,实测 **516**;`t=0.28`(u=0.56 ⇒ `u/0.55>1` ⇒ 模糊已收清)实测 **483**
+- **★★★ 参数控制图层原来用了 solid,盖住整幅画面**:第一次抽帧全帧都是黑、
+  `bbox=(0,0,2048,1152)`、`pixels=2,358,478`,而**日志一切正常**(`layers=10`、`DONE`、`.aep` 已存)。
+  改成 `addNull` 后 `t=0` 全透明、`t=1.2` bbox 正常。⇒ 参数控制**必须用 null 对象**;`jsxlib.jsx` 同步修
+- **★★ `run_ae.ps1` 的 `DONE` 判据写成 `^DONE`,永远匹配不到**:日志每行以 `Thu Oct 29 … GMT+0800  DONE` 开头 ⇒
+  三次构建**全部成功却全部报"日志里没有 DONE"、退出码 1**。改为 `DONE$`
+- **★★ `& $AePath -r $Jsx` 在嵌套 PowerShell 里抛 `You cannot call a method on a null-valued expression`**:
+  脚本其实已跑完(日志有 `DONE`、`.aep` 已存,708,829 字节),只是包装层报错。改 `Start-Process` + 先等进程出现再轮询
+- **★ 表达式体检把 `undefined` 当成错误**:`CompItem.expressionError` 是 `undefined`,
+  判据 `err !== "" && err !== null` 会给**每个合成各报一条** `EXPR_ERR <合成名> :: undefined`(实测 3 条)。
+  改为 `typeof err === "string" && err.length > 0` ⇒ `count=0`
+- **★ 模糊入场时像素数不单调**:`t=0.12 → 0.28 → 0.5` 的像素数是 `25372 → 31649 → 29685`,
+  模糊扩散让中段比终帧还多 ⇒ `--strict-monotonic` 在含模糊的方案上**必须关**;
+  "在动"改用 bbox 上沿(`516 → 483 → 477`)
+- **新增 `verify_frames.py --allow-empty-start`**:入场从 `opacity=0` 起步时首帧 `pixels=0` 是正常的,
+  原判据会报 FAIL ⇒ 只放行**首帧**,其余仍要求 `>0`
+- **`run_ae.ps1` 改存 UTF-8 with BOM**:PS 5.1 按 ANSI 读无 BOM 的 `.ps1`,中文提示全乱码(`[run_ae] 鍚姩 AE ...`)
+- **文档同步**:`docs/从素材清单生成工程.md`(结构图 + 两组实测)、`scripts/comp-builder/README.md`(方案表 + 坑)、
+  `scripts/ae-headless-run/README.md`(时序 + 3 条坑 + 实测)、`skills/ae-script-runner`(铁律 7/8 + 排查表)、
+  `skills/ae-comp-builder`(铁律 1 + 方案表)、`skills/ae-frame-verify`(判据 0/1 + 方案5 实测)、`AGENTS.md`(基线 + 4 行坑)
+
 ## v1.0.0 · 2026-10-29
 
 - **仓库建立**,7 个主题 + 7 个 Skill 入库。内容来自 `835_启动页` 三品牌三方案工程的实际交付:

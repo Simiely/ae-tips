@@ -59,8 +59,11 @@ function addBg(comp, w, h, dur, hex) {
 
 // 参数控制图层:一组滑块,排在最上
 //   sliders = [["图标时长", 500], ["图标延迟", 0], ...]
+// ★ 必须用 null 对象,不能用 solid: solid 是不透明黑层,会盖住整幅画面
+//   (实测:抽帧 bbox 退化成整帧 (0,0,2048,1152))
 function addController(comp, w, h, dur, sliders) {
-    var ctl = comp.layers.addSolid([0, 0, 0], "参数控制", w, h, 1, dur);
+    var ctl = comp.layers.addNull(dur);
+    ctl.name = "参数控制";
     ctl.moveToBeginning();
     ctl.locked = false;
     var i, fx;

@@ -36,6 +36,9 @@ CURVE = {
     "back": "0.34,1.56,0.64,1",
     "inOut": "0.65,0,0.35,1",
     "linear": "0,0,1,1",
+    # 方案5 · 最初经典(取自 835_启动页 的方案5 动效调试 HTML)
+    "quartOut": "0.25,1,0.5,1",     # Logo 整体
+    "ease": "0.42,0,0.58,1",        # 副标题
 }
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -141,6 +144,33 @@ def scheme_s5(lyr, m):
 SCHEMES = {"s1": scheme_s1, "s3": scheme_s3, "s5": scheme_s5}
 
 
+def scheme_s5v2(lyr, m):
+    """方案5 · 最初经典:整体 Logo 一条大位移 + 缩放 94→100;
+    透明度与模糊**在前 55% 收清**,位移/缩放走满 100%。
+    Logo 走 Quart-out,副标题走 ease(两个 role 曲线不同,是本方案的特征)
+    """
+    dur, delay, stag = proxy_param(lyr["role"])
+    idx = lyr.get("idx", 0)
+    h = head(dur, delay, idx, stag)
+    if lyr["role"] == "logo_full":
+        f = curve("quartOut")
+        g = "var h2=cb(Math.min(1,u/0.55),%s);" % CURVE["quartOut"]
+        return [
+            ("ADBE Position", EASE + h + f + "var dy=%s;var p=value;[p[0],p[1]+dy-dy*f];" % m["logoFullDy"]),
+            ("ADBE Scale", EASE + h + f + "var sc=94+6*f;[sc,sc];"),
+            ("ADBE Opacity", EASE + h + g + "100*h2;"),
+        ], EASE + h + g + "%s*(1-h2);" % m["blurLogo5"]
+    # 副标题(逐字)
+    f = curve("ease")
+    return [
+        ("ADBE Position", EASE + h + f + "var dy=%s;var p=value;[p[0],p[1]+dy-dy*f];" % m["tagDy5"]),
+        ("ADBE Opacity", EASE + h + f + "100*f;"),
+    ], EASE + h + f + "%s*(1-f);" % m["blurTag5"]
+
+
+SCHEMES["s5v2"] = scheme_s5v2
+
+
 # ------------------------------------------------------------
 # jsx 片段
 # ------------------------------------------------------------
@@ -197,6 +227,16 @@ def js_quote(s):
     return json.dumps(s, ensure_ascii=False)
 
 
+# 默认 10 个滑块(旧工程的通用组);清单里写 meta.sliders 可以只保留实际用到的几组,
+# 避免在 AE 里留下一排没人读的滑块。
+SLIDERS_DEFAULT = [
+    ["图标时长", 500], ["图标延迟", 0],
+    ["文字时长", 500], ["文字延迟", 0], ["文字错位", 0],
+    ["副标题时长", 400], ["副标题延迟", 400], ["副标题错位", 0],
+    ["Logo整体时长", 1000], ["Logo整体延迟", 0],
+]
+
+
 def build_jsx(manifest):
     meta = manifest["meta"]
     comp_cfg = meta["comp"]
@@ -214,6 +254,10 @@ def build_jsx(manifest):
         "blurIcon": 12,
         "blurIconPop": 16,
         "blurLogo": 4,
+        # s5v2(方案5 · 最初经典):数值取自调试页 58/16/10/5 在 2048 合成下的 2 倍
+        "tagDy5": 32.0,
+        "blurLogo5": 20,
+        "blurTag5": 10,
     }
     defaults.update(motion)
 
@@ -240,12 +284,8 @@ def build_jsx(manifest):
     out.write('var ASSET_DIR = DATA.assetDir;\n')
     out.write('var W = DATA.comp.width, H = DATA.comp.height;\n')
     out.write('var DUR = DATA.comp.duration, FPS = DATA.comp.fps;\n')
-    out.write("var SLIDERS = [\n"
-              "  [\"图标时长\",500],[\"图标延迟\",0],\n"
-              "  [\"文字时长\",500],[\"文字延迟\",0],[\"文字错位\",0],\n"
-              "  [\"副标题时长\",400],[\"副标题延迟\",400],[\"副标题错位\",0],\n"
-              "  [\"Logo整体时长\",1000],[\"Logo整体延迟\",0]\n"
-              "];\n\n")
+    out.write("var SLIDERS = %s;\n\n" % json.dumps(meta.get("sliders") or SLIDERS_DEFAULT,
+                                                   ensure_ascii=False))
 
     out.write("for (i = 0; i < DATA.comps.length; i++) {\n")
     out.write("  c = DATA.comps[i];\n")
@@ -254,8 +294,10 @@ def build_jsx(manifest):
     out.write("  // 背景:置底 + 锁定\n")
     out.write("  var bg = cc.layers.addSolid(hexToRgb(DATA.bg), \"BG\", W, H, 1, DUR);\n")
     out.write("  bg.moveToEnd(); bg.locked = true;\n")
-    out.write("  // 参数控制:置顶 + 10 个滑块\n")
-    out.write("  var ctl = cc.layers.addSolid([0,0,0], \"%s\", W, H, 1, DUR);\n" % CTRL)
+    out.write("  // 参数控制:置顶 null(★ 不能用 solid —— solid 是不透明黑层,会把整幅画面盖住;\n")
+    out.write("  //   实测:抽帧 bbox 退化成 (0,0,2048,1152)、pixels 2,358,478)\n")
+    out.write("  var ctl = cc.layers.addNull(DUR);\n")
+    out.write('  ctl.name = "%s";\n' % CTRL)
     out.write("  ctl.moveToBeginning();\n")
     out.write("  for (j = 0; j < SLIDERS.length; j++) {\n")
     out.write("    var fx = ctl.property(\"ADBE Effect Parade\").addProperty(\"ADBE Slider Control\");\n")
@@ -295,9 +337,11 @@ function scanExpr(prop, path) {
             if (child !== null) { scanExpr(child, path + "/" + child.name); }
         }
     } else {
-        var err = "";
-        try { err = prop.expressionError; } catch (e3) { err = ""; }
-        if (err !== "" && err !== null) { EXPR_ERRORS.push(path + " :: " + err); }
+        var err = null;
+        try { err = prop.expressionError; } catch (e3) { err = null; }
+        // ★ 必须判 "是字符串且非空":CompItem 也有 expressionError,值是 undefined,
+        //   写成 err !== "" && err !== null 会把每个合成各报一条假错(实测 3 条)。
+        if (typeof err === "string" && err.length > 0) { EXPR_ERRORS.push(path + " :: " + err); }
     }
 }
 for (i = 0; i < COMPS.length; i++) { scanExpr(COMPS[i], COMPS[i].name); }
@@ -343,6 +387,7 @@ def prepare(manifest):
     m = {
         "iconDy": 40.96, "logoDy": 20.48, "tagDy": 20.48, "logoFullDy": 116.0,
         "logoSpread": 40.96, "blurIcon": 12, "blurIconPop": 16, "blurLogo": 4,
+        "tagDy5": 32.0, "blurLogo5": 20, "blurTag5": 10,
     }
     m.update(manifest["meta"].get("motion", {}))
     for comp in manifest["comps"]:

@@ -20,7 +20,9 @@ agent_created: true
 4. **日志只拼标量**:`L("x" + 对象)` 会让进程消失
 5. **抽帧等写盘**:`$.sleep(900)` + `(new File(fn)).exists` 自查,结尾 `$.sleep(2500)`
 6. **末尾 `app.quit()`**:这是 runner 判"结束"的唯一信号
-7. **一次只改一个矛盾点**,卡住就停
+7. **判 `DONE` 匹配行尾**(`"DONE$"`):日志每行前面有时间戳,`^DONE` 永远匹配不到 —— 实测三次构建全被误判成"中途崩"
+8. **投递脚本用 `Start-Process`**,不要 `& $AePath -r $Jsx`:嵌套 PowerShell 里后者在 AE 退出后会抛 `You cannot call a method on a null-valued expression`(脚本其实已跑完,但退出码变 1)
+9. **一次只改一个矛盾点**,卡住就停
 
 ---
 
@@ -100,6 +102,8 @@ app.quit();
 | 日志空 | 冷启动未就绪 / 未逐行落盘 |
 | 日志成功但无文件 | 异步写盘 + 立即 quit |
 | `afterfx -r` 返回但什么都没发生 | 脚本被已有实例吞了 / 路径含中文 |
+| 日志里明明有 `DONE`,runner 却说没有 | 判据写成 `^DONE`,日志行首是时间戳 ⇒ 改 `DONE$` |
+| runner 报 `You cannot call a method on a null-valued expression`,但日志完整 | `& $AePath -r $Jsx` 在嵌套 PowerShell 里的怪错 ⇒ 改 `Start-Process` |
 | 超时被杀 | 脚本没有 `app.quit()` |
 
 ## 脚本

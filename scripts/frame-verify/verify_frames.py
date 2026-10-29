@@ -87,7 +87,10 @@ def main():
     ap.add_argument("--tol", type=int, default=4, help="末帧 bbox 容差 px")
     ap.add_argument("--contact", default=None)
     ap.add_argument("--strict-monotonic", action="store_true",
-                    help="强制要求像素数单调不减(有回弹/消失的方案不要开)")
+                    help="强制要求像素数单调不减(有回弹/消失的方案不要开;"
+                         "★ 模糊入场也别开 —— 模糊扩散会让中段像素数比终帧还多)")
+    ap.add_argument("--allow-empty-start", action="store_true",
+                    help="允许首帧为空(入场从 opacity=0 起步的方案)")
     args = ap.parse_args()
 
     bg = hex_rgb(args.bg)
@@ -116,8 +119,11 @@ def main():
             rows_for_sheet.append((prefix, t, path))
             note = ""
             if n == 0:
-                note = "全背景?"
-                fail += 1
+                if args.allow_empty_start and t == frames[0][0]:
+                    note = "首帧全透明(已放行)"
+                else:
+                    note = "全背景?"
+                    fail += 1
             print("%-4s %-8.2f %-11s %-22s %8d  %s" %
                   (prefix, t / 1000.0, "%dx%d" % size, str(bbox), n, note))
 

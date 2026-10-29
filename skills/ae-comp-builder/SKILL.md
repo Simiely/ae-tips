@@ -14,7 +14,8 @@ agent_created: true
 
 ## 铁律
 
-1. **合成结构固定**:参数控制(置顶)→ 图层 → BG(置底 + `locked`)
+1. **合成结构固定**:参数控制(**null 对象**,置顶)→ 图层 → BG(置底 + `locked`)
+   - ★ 参数控制**不能用 solid**:不透明黑层会盖住整幅画面,而日志一切正常,只有抽帧能发现
 2. **参数控制全合成唯一**,表达式靠名字找它
 3. **`cx/cy` 用素材文件中心**(含透明边距);边距不对称就先修素材
 4. **AE 没有 `JSON.parse`** ⇒ 清单一律变成 **JS 字面量**内联,不要试图在 jsx 里读 JSON
@@ -88,6 +89,7 @@ powershell -File ../ae-headless-run/run_ae.ps1 -Jsx build_x.jsx
 | `s1` 上浮淡入 | `+40.96px` / `Opacity` / `Scale 92→100` / `Blur 12→0` | `+20.48px` / `Blur 4→0` | `+116px` / `Blur 4→0` |
 | `s3` 弹性缩放 | `Scale 50+60f-10g` / `Blur 16→0` | `±40.96px`(按 `idx` 奇偶) | — |
 | `s5` 整体上浮 | — | — | `+116px` / `Opacity` 用 `u/0.55` 提前收满 |
+| `s5v2` 最初经典 | — | `+32px` / `Opacity` / `Blur 10→0` / **ease** | `+116px` / `Scale 94→100` / `Blur 20→0` / 前 55% 收清 / **Quart-out** |
 
 ## §5 验证
 
@@ -107,7 +109,7 @@ powershell -File ../ae-headless-run/run_ae.ps1 -Jsx build_x.jsx
 | `KeyError: 'icon'` | 迭代了根节点(要 `comps`) |
 | 图层偏 | `cx/cy` 用了可见内容中心,而素材边距对称 ⇒ 应该用文件中心 |
 | 某层完全不见 | `importPng` 返回 null(文件不存在 / 路径拼错) |
-| 表达式全红 | 参数控制不在顶层 / 名字不符 |
+| 表达式全红 | 参数控制不在顶层 / 名字不符;或体检判据把 `undefined` 当成错误(合成级会假报) |
 | 改了生成器但产物没变 | 没重跑 `build_aep.py`(jsx 是生成物) |
 | 缓动行为变了 | 两份 `EASE` 漂了 ⇒ `--check-ease` |
 

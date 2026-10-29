@@ -53,7 +53,8 @@ powershell -File ../ae-headless-run/run_ae.ps1 -Jsx build_start_page.jsx
 | `meta.bg` | 背景纯色,`addBg` 会置底并**锁定** |
 | `meta.asset_dir` | PNG 目录;层里 `file` 是相对路径 |
 | `meta.motion.*` | 位移/模糊的**默认量**,单位 px;缺省值见上表(取自实测工程) |
-| `comps[].scheme` | `s1` 上浮淡入 / `s3` 弹性缩放 / `s5` 整体上浮 |
+| `comps[].scheme` | `s1` 上浮淡入 / `s3` 弹性缩放 / `s5` 整体上浮 / `s5v2` 最初经典 |
+| `meta.sliders` | 可选;**只写实际用到的几组滑块**(不写就用上面那 10 个通用组) |
 | `comps[].shoot` | 抽帧时间点(秒);不写就不抽 |
 | `layers[].role` | `icon` / `logo` / `tag` / `logo_full` ⇒ 决定读哪组滑块 |
 | `layers[].idx` | 错位序号(`logo` 用 `文字错位`,方案 3 里还决定左右方向) |
@@ -63,7 +64,10 @@ powershell -File ../ae-headless-run/run_ae.ps1 -Jsx build_start_page.jsx
 
 1. `#target aftereffects` + 三个路径常量 + `DATA`(整份清单的 JS 字面量)
 2. 公共函数:`L()` / `hexToRgb` / `importPng` / `setT` / `addBlur`
-3. 每个合成:背景 solid(锁定)→ 参数控制图层(**10 个滑块**)→ 逐层 import + 定位 + 挂表达式 + 可选高斯模糊
+3. 每个合成:背景 solid(锁定)→ 参数控制图层(**null 对象 + 滑块**,滑块条数由 `meta.sliders` 决定)
+   → 逐层 import + 定位 + 挂表达式 + 可选高斯模糊
+   - ★ 参数控制**必须是 null 对象**:用 solid 会变成一层不透明黑,把整幅画面盖住
+     (实测抽帧 bbox 退化成整帧 `(0,0,2048,1152)`、`pixels=2,358,478`)
 4. 表达式体检:`scanExpr` 递归遍历属性树,把 `expressionError` 非空的打到日志
 5. 抽帧:`c<N>_t<T>.png`,每帧 `$.sleep(900)` + `exists` 自查
 6. 存盘 → `L("DONE")` → `$.sleep(2500)` → `app.quit()`
@@ -75,6 +79,11 @@ powershell -File ../ae-headless-run/run_ae.ps1 -Jsx build_start_page.jsx
 | `s1` 上浮淡入 | `Position` `+40.96px` 上浮、`Opacity 100*f`、`Scale 92→100`、`Blur 12→0` | `+20.48px`、`Opacity`、`Blur 4→0` | `+116px`、`Opacity`、`Blur 4→0` |
 | `s3` 弹性缩放 | `Scale 50+60*f-10*g`(`back` 超调)、`Blur 16→0` | `Position ±40.96px`(按 `idx` 奇偶分左右) | — |
 | `s5` 整体上浮 | — | — | `+116px`、`Opacity` 用 `u/0.55` 提前收满、`Blur 4→0` |
+| `s5v2` 最初经典 | — | `+32px`、`Opacity 100*f`、`Blur 10→0`、曲线 **ease** `(0.42,0,0.58,1)` | `+116px`、`Scale 94→100`、`Blur 20→0`,透明度/模糊**前 55% 到位**,曲线 **Quart-out** `(0.25,1,0.5,1)` |
+
+`s5v2` 的两个角色**曲线不同**(Logo Quart-out / 副标题 ease),这是它与 `s5` 的实质差别;
+默认参数按该方案声明 `meta.sliders` = `Logo整体时长 500 / Logo整体延迟 0 / 副标题时长 400 /
+副标题延迟 100 / 副标题错位 0`(实测 3 合成 / 22 层 / 15 帧 / `expressionError count=0`)。
 
 滑块默认值:`图标时长 500 / 图标延迟 0 / 文字时长 500 / 文字延迟 0 / 文字错位 0 /
 副标题时长 400 / 副标题延迟 400 / 副标题错位 0 / Logo整体时长 1000 / Logo整体延迟 0`(单位 ms)。
@@ -89,3 +98,8 @@ powershell -File ../ae-headless-run/run_ae.ps1 -Jsx build_start_page.jsx
   要么改传可见内容中心。
 - **滑块名用中文,表达式也用中文**可以工作(自己命名的属性名会随界面语言);
   但**默认英文名**(`Slider` / `Blurriness`)**在中文界面取不到** ⇒ 按索引。
+- **参数控制不能用 solid**:solid 是不透明黑层,置顶后盖住整幅画面,但**日志一切正常**
+  —— 只有抽帧能看出来(bbox 退化成 `(0,0,2048,1152)`、pixels ≈ 2.36M)。用 `addNull`。
+- **`expressionError` 在 `CompItem` 上是 `undefined`**:写成 `err !== "" && err !== null` 会
+  把每个合成各报一条 `EXPR_ERR <合成名> :: undefined`(实测 3 条)。判据应是
+  `typeof err === "string" && err.length > 0`。
