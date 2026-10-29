@@ -1,0 +1,15 @@
+# 产物与临时文件
+ae_render/
+*.aep
+*.log
+*_log.txt
+*.png
+!docs/**/*.png
+
+# Python
+__pycache__/
+*.pyc
+
+# 编辑器
+.vscode/
+.idea/
