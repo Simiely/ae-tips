@@ -1,8 +1,10 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-29 v1.1.0 —— 新增方案 `s5v2`(最初经典:116px / 94→100 / 模糊 20→0 / 前 55% 收清,
-> Logo Quart-out + 副标题 ease),并把第二次交付踩到的四个坑写回(参数控制用 null、`DONE$` 判据、
-> `& -r` 的 null 报错、`expressionError` 的 `undefined` 假报)。
+> 📌 **文档基线**:2026-10-29 v1.2.0 —— 新增「采样对表」验证(`probe_curve.jsx` 用 `valueAtTime` 只读采样 +
+> `compare_curve.py` 与解析曲线逐点比,判据 `FAIL=0`,实测最大偏差 **0.0055**),方案 `s5v2` 的六项参数
+> 与时序图逐条对表全中;并把"`dy` 方向写反导致整表假红"记成度量坑。
+> v1.1.0 新增方案 `s5v2`(116px / 94→100 / 模糊 20→0 / 前 55% 收清,Logo Quart-out + 副标题 ease),
+> 修了四处会静默骗人的缺陷(参数控制用 solid、`DONE$` 判据、`& -r` 的 null 报错、`expressionError` 的 `undefined`)。
 > 内容全部来自 `835_启动页` 两次实际交付(9 个合成 27 帧 + 3 个合成 15 帧),
 > 口径为 **AE 2026(中文界面)/ Windows**。
 > (**★★ 头号坑:AE 2026 的 `setTemporalEaseAtKey` 对多维亚属性不可用** —— Position 传 2 个 ease 直接报
@@ -83,6 +85,7 @@ ae-tips/
 | ★★ | 中文版属性名 | `property("Slider")` = `null` ⇒ 按索引 |
 | ★ | `expressionError` 的 `undefined` | 合成级会假报 `EXPR_ERR <合成名> :: undefined` ⇒ 判 `typeof err === "string"` |
 | ★ | 模糊入场时像素数非单调 | 模糊扩散让中段比终帧多(实测 31649 → 29685)⇒ 用 bbox 上沿判"在动" |
+| ★ | 度量方向写反 | `静止 y − 当前 y` 会让整表假红(t=0 报 `-116/116/差 232`)⇒ 上浮场景是 `当前 y − 静止 y` |
 | ★ | 冷启动未等窗口 | `-r` 静默不执行 ⇒ 轮询 `MainWindowTitle` |
 | ★ | `.ps1` 无 BOM | PS 5.1 按 ANSI 读 ⇒ 中文提示乱码 ⇒ 存 UTF-8 with BOM |
 | ★ | `dimensionsSeparated` | 分维度后取属性崩溃 ⇒ 不分离 |

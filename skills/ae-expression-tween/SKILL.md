@@ -80,9 +80,28 @@ TWEEN.blurIn({ dur:"图标时长", delay:"图标延迟", blur:12 })
 
 ```javascript
 // ① 表达式体检:递归扫,判据 0 条
-// ② 抽帧:t=0 / 与滑块时长相关的几个点 / 末帧
-// ③ 改滑块,同一时间点再抽一帧,bbox 必须变
+// ② valueAtTime 采样对表(最硬的一条,见下)
+// ③ 抽帧:t=0 / 与滑块时长相关的几个点 / 末帧
+// ④ 改滑块,同一时间点再抽一帧,bbox 必须变
 ```
+
+**② 采样对表**:抽帧只能看出"在动",看不出"是不是按这条曲线在动"。
+`prop.valueAtTime(t, false)` 返回**含表达式求值**的真实值,可以逐点与解析值比。
+
+```powershell
+# probe_curve.jsx 改好 AEP/LOG 路径后
+run_ae.ps1 -Jsx probe_curve.jsx -Log curve_probe.log
+python compare_curve.py curve_probe.log --profile s5v2
+```
+
+判据:`FAIL=0`,位置偏差 ≤0.05px、缩放/不透明度/模糊 ≤0.05。
+`compare_curve.py` 还自带两条硬检查:
+
+- **[a] 末两帧位置必须相等**(否则"静止基准"不可信,整张表都白算);
+- **[b] 分段检查**:方案声明"前 55% 到位"时,`u≥55%` 之后必须 `opacity=100、blur=0`,而位移**仍有余量**
+  (>1px)—— 这条能区分"真分段(`cb(min(1,u/0.55))`)"和"整体乘个系数"的假实现。
+
+实测(s5v2 / 三品牌):`最大偏差 0.0055`,`[分段] t=0.275 opacity=100.00 blur=0.00 位移余5.22px > OK`。
 
 三条可证伪读数:
 
@@ -90,6 +109,7 @@ TWEEN.blurIn({ dur:"图标时长", delay:"图标延迟", blur:12 })
 |---|---|---|
 | 曲线算法 | `linear` 逐点等于 t;`back` 在 t=0.5 **>1** | `cb` 20 次二分:`out` 0.9718 / `back` 1.0874 |
 | 终态精确 | `Scale` 末帧必须等于 100 | `50+60×1-10×1 = 100` |
+| 采样对表 | 逐点差 ≤0.05 | 9 个时间点 × 6 组,`最大 0.0055` |
 | 滑块生效 | 改时长后同一时刻位移必须变 | `图标时长` 500→1000ms,`t=0.12s` 顶边 **486px → 497px** |
 
 `TWEEN.selfTest()` 可以不开 AE 直接验曲线(纯算术)。
@@ -109,7 +129,9 @@ TWEEN.blurIn({ dur:"图标时长", delay:"图标延迟", blur:12 })
 ## §5 脚本
 
 - [`../scripts/expression-tween/tween.jsx`](../scripts/expression-tween/tween.jsx) —— 曲线常量 + 表达式 builder + `selfTest()`
-- [`../scripts/expression-tween/README.md`](../scripts/expression-tween/README.md) —— 四条曲线的实测数值表
+- [`../scripts/expression-tween/probe_curve.jsx`](../scripts/expression-tween/probe_curve.jsx) —— **只读采样**:打开 `.aep`,把 `valueAtTime` 求值结果按 `S|comp|obj|t|...` 落盘
+- [`../scripts/expression-tween/compare_curve.py`](../scripts/expression-tween/compare_curve.py) —— 解析曲线逐点对表 + `[a]` 末帧静止 / `[b]` 分段检查
+- [`../scripts/expression-tween/README.md`](../scripts/expression-tween/README.md) —— 六条曲线的实测数值表 + 采样用法
 - 生成器里的同一份源码:[`../scripts/comp-builder/build_aep.py`](../scripts/comp-builder/build_aep.py) 的 `EASE`
   (**必须与 tween.jsx 逐字一致**,`build_aep.py --check-ease` 会比对)
 
