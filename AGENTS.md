@@ -1,28 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**:2026-10-29 v1.2.0 —— 新增「采样对表」验证(`probe_curve.jsx` 用 `valueAtTime` 只读采样 +
-> `compare_curve.py` 与解析曲线逐点比,判据 `FAIL=0`,实测最大偏差 **0.0055**),方案 `s5v2` 的六项参数
-> 与时序图逐条对表全中;并把"`dy` 方向写反导致整表假红"记成度量坑。
-> v1.1.0 新增方案 `s5v2`(116px / 94→100 / 模糊 20→0 / 前 55% 收清,Logo Quart-out + 副标题 ease),
-> 修了四处会静默骗人的缺陷(参数控制用 solid、`DONE$` 判据、`& -r` 的 null 报错、`expressionError` 的 `undefined`)。
-> 内容全部来自 `835_启动页` 两次实际交付(9 个合成 27 帧 + 3 个合成 15 帧),
-> 口径为 **AE 2026(中文界面)/ Windows**。
-> (**★★ 头号坑:AE 2026 的 `setTemporalEaseAtKey` 对多维亚属性不可用** —— Position 传 2 个 ease 直接报
-> `由于参数 2,无法调用...值数组没有 1 元素`;Scale 传 2 个 ease **硬崩溃整个 AE 进程**(`try/catch` 接不住);
-> Position 退到 1 个 ease 后**采样阶段仍然崩**。⇒ **本仓库一律用表达式做缓动,不碰该 API**
-> · ★★ **`saveFrameToPng` 是异步写盘**:首轮 27 帧的日志全写"成功",**磁盘上 0 个文件** ——
-> 根因是脚本跑完立即 `app.quit()`,写盘请求被进程退出吞掉;修法 = 每帧后 `$.sleep(900)` 再 `(new File(fn)).exists` 自查,
-> 结尾 `$.sleep(2500)` 才算完
-> · ★★ **日志必须逐行 open/append/close 落盘**:`File` 对象在 `close()` 时才真正写盘,
-> 脚本中途硬崩 ⇒ 缓冲区全丢、日志为空 ⇒ **看起来像"脚本没跑"**。逐行落盘后崩溃点永远能定位
-> · ★ **拼接 AE 对象会让进程硬崩**:`L("openInViewer " + ok)`、`L("ret=" + r)`(r 是 `saveFrameToPng` 返回值)
-> 都实测崩过;**只能拼 `.name` / `.exists` / `.length` / 数字/字符串**
-> · ★ **中文版 AE 里 `property("Slider")` / `property("Blurriness")` 返回 `null`** ⇒ 一律按**索引**取
-> (`effect(1)`、`fx.property(1)`、`fx.property(3)`)
-> · ★ **`dimensionsSeparated = true` 之后再 `ps.property(1)` 会崩** ⇒ 分离维度方案整条放弃
-> · ★ **冷启动要先等窗口**:同一进程里 `Start-Process` → 轮询 `MainWindowTitle` 非空 → 才 `-r <jsx>`,
-> 否则脚本静默不执行、日志为空
-> · ★ **抽帧文件名用 ASCII**:中文/空格名在首轮里出现"日志成功、文件不存在",换 `c<N>_t<T>.png` 后稳定)
+> 📌 **文档基线**：2026-11-18 接入单项目规范机器层（repo-kit 2.8.0 / skills，commit 待填）
 
 ## 仓库定位
 

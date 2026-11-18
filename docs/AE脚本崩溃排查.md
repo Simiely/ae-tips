@@ -1,3 +1,18 @@
+---
+id: "docs.troubleshooting.crash"
+title: "AE 脚本崩溃排查"
+summary: "AE 的失败模式几乎不抛异常；按命中率查进程、日志、工程与抽帧。"
+type: "how-to"
+kind: "note"
+status: "active"
+owner: "@simiely"
+topics: ["skills"]
+source_type: "code"
+source: "scripts/ae-headless-run/run_ae.ps1"
+last_reviewed: "2026-10-29"
+related: []
+---
+
 # AE 脚本崩溃排查
 
 **场景**:`afterfx -r` 跑完没反应;日志为空;进程消失;工程存了但抽帧没了。

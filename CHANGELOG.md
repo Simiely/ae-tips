@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## Unreleased · 2026-11-18
+
+- 接入单项目规范机器层（repo-kit 2.8.0 / spec 2.1.3，profile `skills`）
+- 7 篇 docs 补 frontmatter；生成 `llms.txt` 与 `docs/_generated/{index,backlinks,pitfalls}.md`
+- taxonomy 设 `skills.install_prefix: "skills"`：SKILL.md 的 `../scripts`、`../docs` 按安装布局解析，
+  29 条链接零改动通过（此前按仓库布局会误报断链）
+- 新增 CI：check + generate --check + lock（无 `sources.json`，不跑 co-change）
+- 验收：`REPO CHECK: PASS`（ERROR=0, WARN=0, pages=7）、`GENERATE CHECK: PASS`
+
 ## v1.2.0 · 2026-10-29
 
 - **新增「采样对表」工具,回答"曲线到底有没有按参数应用"** —— 抽帧只能证明"在动",

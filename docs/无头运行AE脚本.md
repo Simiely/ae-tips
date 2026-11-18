@@ -1,3 +1,18 @@
+---
+id: "docs.headless-run"
+title: "无头运行 AE 脚本"
+summary: "afterfx -r <jsx> + 严格进程时序 + 逐行落盘日志，批量生成与抽帧不用开界面。"
+type: "how-to"
+kind: "note"
+status: "active"
+owner: "@simiely"
+topics: ["skills"]
+source_type: "code"
+source: "scripts/ae-headless-run/run_ae.ps1"
+last_reviewed: "2026-10-29"
+related: []
+---
+
 # 无头运行 AE 脚本
 
 **场景**:批量生成 `.aep`、批量抽帧、无人值守跑一整夜;不开界面、不点菜单。

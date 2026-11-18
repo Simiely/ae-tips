@@ -1,3 +1,18 @@
+---
+id: "docs.asset-extraction"
+title: "从 AI 提取透明元素"
+summary: "设计稿统一深色底反解 alpha + 单元格裁切，输出可独立做动画的透明 PNG。"
+type: "how-to"
+kind: "note"
+status: "active"
+owner: "@simiely"
+topics: ["skills"]
+source_type: "code"
+source: "scripts/vector-extract/extract_assets.py"
+last_reviewed: "2026-10-29"
+related: []
+---
+
 # 从 AI 提取透明元素
 
 **场景**:设计给的是启动页 `.ai`(整张画面、统一深色底),需要拆出图标 / 逐字 Logo / 逐字副标题,
